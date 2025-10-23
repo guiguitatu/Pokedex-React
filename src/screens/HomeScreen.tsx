@@ -65,16 +65,17 @@ const HomeScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por nome ou número"
-            placeholderTextColor={colors.placeholder}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+          style={styles.searchInput}
+          placeholder="Buscar por nome ou número"
+          placeholderTextColor={colors.placeholder}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
         />
         <Button title="Buscar" onPress={handleSearch} color={colors.primary} />
       </View>
-       <Button title="Ver Favoritos" onPress={() => navigation.navigate('Favorites')} color={colors.accent} />
+      <Button title="Ver Favoritos" onPress={() => navigation.navigate('Favorites')} color={colors.accent} />
       <FlatList
+        style={styles.flatList}
         data={pokemonList}
         keyExtractor={(item) => item.name}
         numColumns={2}
@@ -128,10 +129,14 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.inputBackground,
       color: colors.text,
     },
+    flatList: {
+      flex: 1,
+    },
     list: {
       paddingBottom: 16,
       paddingHorizontal: 4,
       backgroundColor: colors.listBackground,
+      flexGrow: 1,
     },
     errorText: { color: colors.error, marginBottom: 10, textAlign: 'center' },
   });
