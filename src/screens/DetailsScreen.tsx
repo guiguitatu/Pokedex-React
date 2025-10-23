@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
+import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { getPokemonDetails } from '../api/pokeapi';
 import { PokemonDetails } from '../types/pokemon';
@@ -7,6 +7,7 @@ import { FavoritesContext } from '../contexts/FavoritesContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import axios from 'axios';
 import typeColors from '../utils/typeColors';
+import { useTheme, ThemeColors } from '../contexts/ThemeContext';
 
 type DetailsScreenRouteProp = RouteProp<RootStackParamList, 'Details'>;
 
@@ -20,6 +21,8 @@ const DetailsScreen = () => {
   const [abilitiesPT, setAbilitiesPT] = useState<string[]>([]);
 
   const { addFavorite, removeFavorite, isFavorite } = useContext(FavoritesContext);
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -62,7 +65,7 @@ const DetailsScreen = () => {
 
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" style={styles.centered} />;
+    return <ActivityIndicator size="large" color={colors.spinner} style={styles.centered} />;
   }
 
   if (error) {
@@ -80,84 +83,167 @@ const DetailsScreen = () => {
   const favorite = isFavorite(pokemon.id);
 
   const mainType = pokemon.types[0]?.type.name;
-  const bgColor = typeColors[mainType] || '#fff';
+  const accentColor = typeColors[mainType] || colors.accent;
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}> 
-      <Image 
-        source={{ uri: pokemon.sprites.other['official-artwork'].front_default }} 
-        style={styles.image} 
-      />
-      <Text style={styles.name}>{pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}</Text>
-      <Text style={styles.pokedexNumber}>#{String(pokemon.id).padStart(3, '0')}</Text>
-      <View style={styles.typesContainer}>
-        {pokemon.types.map(({ type }) => (
-          <Text key={type.name} style={styles.type}>{type.name}</Text>
-        ))}
+    <ScrollView contentContainerStyle={styles.scrollContent} style={styles.container}>
+      <View style={[styles.card, { borderColor: colors.border }]}>
+        <View style={[styles.imageWrapper, { backgroundColor: accentColor }]}>
+          <Image
+            source={{ uri: pokemon.sprites.other['official-artwork'].front_default }}
+            style={styles.image}
+          />
+        </View>
+        <Text style={styles.name}>{pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}</Text>
+        <Text style={styles.pokedexNumber}>#{String(pokemon.id).padStart(3, '0')}</Text>
+        <View style={styles.typesContainer}>
+          {pokemon.types.map(({ type }) => (
+            <Text
+              key={type.name}
+              style={[
+                styles.type,
+                {
+                  backgroundColor: typeColors[type.name] || colors.chipBackground,
+                  color: colors.chipText,
+                },
+              ]}
+            >
+              {type.name}
+            </Text>
+          ))}
+        </View>
+        <Text style={styles.sectionTitle}>Habilidades</Text>
+        <View style={styles.abilitiesContainer}>
+          {abilitiesPT.map((name, idx) => (
+            <View
+              key={name + idx}
+              style={[
+                styles.abilityBox,
+                { backgroundColor: colors.abilityBackground, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.abilityText, { color: colors.abilityText }]}>{name}</Text>
+            </View>
+          ))}
+        </View>
+        <TouchableOpacity
+          onPress={handleFavoritePress}
+          style={[
+            styles.favoriteButton,
+            { backgroundColor: favorite ? colors.favoriteButtonActive : colors.favoriteButton },
+          ]}
+        >
+          <Text style={[styles.favoriteButtonText, { color: colors.buttonText }]}>
+            {favorite ? 'Remover dos Favoritos' : 'Adicionar aos Favoritos'}
+          </Text>
+        </TouchableOpacity>
       </View>
-      <Text style={styles.sectionTitle}>Habilidades</Text>
-      <View style={styles.abilitiesContainer}>
-        {abilitiesPT.map((name, idx) => (
-          <View key={name + idx} style={styles.abilityBox}>
-            <Text style={styles.abilityText}>{name}</Text>
-          </View>
-        ))}
-      </View>
-      <TouchableOpacity onPress={handleFavoritePress} style={[styles.favoriteButton, {backgroundColor: favorite ? '#72d323' : '#a1a1a1'}]}>
-        <Text style={styles.favoriteButtonText}>{favorite ? 'Remover dos Favoritos' : 'Adicionar aos Favoritos'}</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { flex: 1, alignItems: 'center', padding: 20, backgroundColor: '#fff' },
-  image: { width: 250, height: 250 },
-  name: { fontSize: 28, fontWeight: 'bold', marginTop: 16 },
-  pokedexNumber: { fontSize: 20, color: 'gray', marginBottom: 10 },
-  typesContainer: { flexDirection: 'row', marginBottom: 20 },
-  type: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 15,
-    marginHorizontal: 5,
-    fontSize: 16,
-    textTransform: 'capitalize',
-  },
-  sectionTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 10, marginBottom: 5 },
-  abilitiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  abilityBox: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 15,
-    margin: 5,
-    alignItems: 'center',
-  },
-  abilityText: {
-    fontSize: 16,
-    textTransform: 'capitalize',
-    color: '#333',
-    fontWeight: 'bold',
-  },
-  errorText: { color: 'red', fontSize: 18 },
-  favoriteButton: {
-    marginTop: 30,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-  },
-  favoriteButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  }
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      padding: 20,
+    },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scrollContent: {
+      padding: 24,
+      alignItems: 'center',
+    },
+    card: {
+      width: '100%',
+      backgroundColor: colors.surface,
+      borderRadius: 24,
+      padding: 24,
+      alignItems: 'center',
+      borderWidth: 1,
+      shadowColor: colors.border,
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    imageWrapper: {
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    image: { width: 200, height: 200 },
+    name: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginTop: 8,
+      color: colors.text,
+      textTransform: 'capitalize',
+    },
+    pokedexNumber: { fontSize: 20, color: colors.secondaryText, marginBottom: 16 },
+    typesContainer: {
+      flexDirection: 'row',
+      marginBottom: 24,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    type: {
+      paddingHorizontal: 15,
+      paddingVertical: 6,
+      borderRadius: 16,
+      marginHorizontal: 6,
+      marginVertical: 4,
+      fontSize: 16,
+      textTransform: 'capitalize',
+      overflow: 'hidden',
+    },
+    sectionTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginTop: 10,
+      marginBottom: 12,
+      color: colors.text,
+      alignSelf: 'flex-start',
+    },
+    abilitiesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    abilityBox: {
+      paddingHorizontal: 15,
+      paddingVertical: 6,
+      borderRadius: 16,
+      margin: 6,
+      alignItems: 'center',
+      borderWidth: 1,
+    },
+    abilityText: {
+      fontSize: 16,
+      textTransform: 'capitalize',
+      fontWeight: 'bold',
+    },
+    errorText: { color: colors.error, fontSize: 18, textAlign: 'center' },
+    favoriteButton: {
+      marginTop: 30,
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 24,
+    },
+    favoriteButtonText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+  });
 
 export default DetailsScreen;
